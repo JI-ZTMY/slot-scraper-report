@@ -86,6 +86,12 @@ def generate(data_dir: str, out_path: str, stores: List[dict], recent_open: int 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Slot Scraper レポート</title>
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Slot Scraper">
+<meta name="theme-color" content="#1e1e24">
 <style>
   :root {{
     color-scheme: light dark;
