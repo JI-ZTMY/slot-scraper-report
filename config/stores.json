@@ -1,0 +1,13 @@
+{
+  "stores": [
+    {
+      "name": "ARROWナンバHIPS",
+      "slug": "MR_arrow_namba_hips",
+      "source_type": "MR",
+      "url": "https://min-repo.com/tag/arrow%E3%83%8A%E3%83%B3%E3%83%90HIPS/",
+      "start_days_ago": 30,
+      "end_days_ago": 1,
+      "fetch_bonus_data": false
+    }
+  ]
+}
