@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+<title>地下2階 島番号マップ（個人用）</title>
+<style>
+  :root{
+    --bg:#eef3f5;
+    --panel:#f7fafb;
+    --cell:#e3eef2;
+    --cell-border:#aec6cf;
+    --ink:#1b2e35;
+    --ink-dim:#5b7580;
+    --accent:#2f6f82;
+    --mark-red:#d3363f;
+    --mark-red-ink:#fff5f5;
+    --mark-blue:#2f5fd6;
+    --mark-blue-ink:#f5f8ff;
+    --mark-yellow:#e8b923;
+    --mark-yellow-ink:#3a2e00;
+    --gray-cell:#c7cdd0;
+    --gray-ink:#5c6367;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#10171a;
+      --panel:#161f23;
+      --cell:#1d2e34;
+      --cell-border:#365a67;
+      --ink:#e7f1f4;
+      --ink-dim:#8fa8b2;
+      --accent:#6fc2d8;
+      --mark-red:#e6484f;
+      --mark-red-ink:#fff5f5;
+      --mark-blue:#4f7fe0;
+      --mark-blue-ink:#f5f8ff;
+      --mark-yellow:#d9a91a;
+      --mark-yellow-ink:#2a2000;
+      --gray-cell:#33393c;
+      --gray-ink:#a7adb0;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,"Yu Gothic UI","Yu Gothic","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;
+  }
+  header{
+    padding:18px 22px 10px;
+  }
+  h1{
+    margin:0 0 4px;
+    font-size:1.3rem;
+    letter-spacing:.02em;
+  }
+  .sub{
+    color:var(--ink-dim);
+    font-size:.85rem;
+    line-height:1.5;
+  }
+  .legend{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    margin-top:8px;
+    font-size:.8rem;
+    color:var(--ink-dim);
+  }
+  .swatch{
+    display:inline-block;
+    width:14px;height:14px;
+    border-radius:3px;
+    vertical-align:-2px;
+    margin-right:6px;
+    border:1px solid var(--cell-border);
+  }
+  .swatch.mark-red{background:var(--mark-red);border-color:var(--mark-red);}
+  .swatch.mark-blue{background:var(--mark-blue);border-color:var(--mark-blue);}
+  .swatch.mark-yellow{background:var(--mark-yellow);border-color:var(--mark-yellow);}
+  .swatch.empty{background:var(--cell);}
+  .toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-top:12px;
+  }
+  .toolbar button{
+    font:inherit;
+    font-size:.82rem;
+    font-weight:600;
+    padding:6px 12px;
+    border:1px solid var(--cell-border);
+    border-radius:8px;
+    background:var(--panel);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .save-note{
+    font-size:.78rem;
+    color:var(--ink-dim);
+  }
+  .mapwrap{
+    overflow-x:auto;
+    padding:0 12px 40px;
+  }
+  #scaler{
+    transform-origin:top left;
+  }
+  #floor{
+    position:relative;
+    width:2200px;
+    height:1900px;
+  }
+  .seat{
+    position:absolute;
+    width:56px;
+    background:var(--cell);
+    border:1px solid var(--cell-border);
+    border-radius:3px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:2px 1px 3px;
+    font-size:10px;
+    line-height:1.15;
+    text-align:center;
+    color:var(--ink);
+    transition:background .15s,color .15s;
+  }
+  .seat .nm{
+    word-break:keep-all;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    max-width:52px;
+    font-weight:600;
+  }
+  .seat .num{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-size:11px;
+    color:var(--ink-dim);
+    margin-top:1px;
+  }
+  .seat[data-mark="○"]{
+    background:var(--mark-red);
+    color:var(--mark-red-ink);
+    border-color:var(--mark-red);
+  }
+  .seat[data-mark="○"] .num{color:var(--mark-red-ink);opacity:.9;}
+  .seat[data-mark="◎"]{
+    background:var(--mark-blue);
+    color:var(--mark-blue-ink);
+    border-color:var(--mark-blue);
+  }
+  .seat[data-mark="◎"] .num{color:var(--mark-blue-ink);opacity:.9;}
+  .seat[data-mark="△"]{
+    background:var(--mark-yellow);
+    color:var(--mark-yellow-ink);
+    border-color:var(--mark-yellow);
+  }
+  .seat[data-mark="△"] .num{color:var(--mark-yellow-ink);opacity:.9;}
+  .seat select{
+    margin-top:2px;
+    width:44px;
+    font-size:10px;
+    border-radius:3px;
+    border:1px solid var(--cell-border);
+    background:var(--panel);
+    color:var(--ink);
+    padding:0 1px;
+  }
+  .gray{
+    position:absolute;
+    background:var(--gray-cell);
+    border:1px solid var(--cell-border);
+    border-radius:3px;
+    color:var(--gray-ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    font-weight:700;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>地下2階 島番号マップ（個人用）</h1>
+  <div class="sub">各台のドロップダウンで記号を選ぶと背景色が変わります。この端末のブラウザだけに保存され、他の人には見えません。画面に収まるよう自動縮小されるので、見たい台をピンチで拡大してください。</div>
+  <div class="legend">
+    <span><span class="swatch empty"></span>未選択</span>
+    <span><span class="swatch mark-blue"></span>◎ 青</span>
+    <span><span class="swatch mark-red"></span>○ 赤</span>
+    <span><span class="swatch mark-yellow"></span>△ 黄</span>
+  </div>
+  <div class="toolbar">
+    <button type="button" id="clear-all">すべて消去</button>
+    <span class="save-note" id="save-note"></span>
+  </div>
+</header>
+
+<div class="mapwrap">
+ <div id="scaler">
+  <div id="floor">
+<div class="gray" style="left:1560px;top:1490px;width:574px;height:56px;"></div>
+<div class="gray" style="left:1560px;top:1560px;width:574px;height:56px;"></div>
+<div class="gray" style="left:1560px;top:1624px;width:574px;height:56px;">5円スロット</div>
+<div class="gray" style="left:1690px;top:1620px;width:300px;height:90px;">カウンター</div>
+<div class="seat" data-num="180" style="left:70px;top:50px;min-height:60px;"><div class="nm">ドッチ</div><div class="num">180</div><select aria-label="台番号180の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="179" style="left:128px;top:50px;min-height:60px;"><div class="nm">ドッチ</div><div class="num">179</div><select aria-label="台番号179の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="178" style="left:186px;top:50px;min-height:60px;"><div class="nm">ドッチ</div><div class="num">178</div><select aria-label="台番号178の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="177" style="left:244px;top:50px;min-height:60px;"><div class="nm">戦コレ6</div><div class="num">177</div><select aria-label="台番号177の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="176" style="left:302px;top:50px;min-height:60px;"><div class="nm">戦コレ6</div><div class="num">176</div><select aria-label="台番号176の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="175" style="left:360px;top:50px;min-height:60px;"><div class="nm">戦コレ6</div><div class="num">175</div><select aria-label="台番号175の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="174" style="left:418px;top:50px;min-height:60px;"><div class="nm">虚構推理</div><div class="num">174</div><select aria-label="台番号174の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="173" style="left:476px;top:50px;min-height:60px;"><div class="nm">虚構推理</div><div class="num">173</div><select aria-label="台番号173の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="172" style="left:534px;top:50px;min-height:60px;"><div class="nm">虚構推理</div><div class="num">172</div><select aria-label="台番号172の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="171" style="left:592px;top:50px;min-height:60px;"><div class="nm">かるてっと</div><div class="num">171</div><select aria-label="台番号171の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="170" style="left:650px;top:50px;min-height:60px;"><div class="nm">かるてっと</div><div class="num">170</div><select aria-label="台番号170の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="169" style="left:708px;top:50px;min-height:60px;"><div class="nm">かるてっと</div><div class="num">169</div><select aria-label="台番号169の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="168" style="left:766px;top:50px;min-height:60px;"><div class="nm">無職転生</div><div class="num">168</div><select aria-label="台番号168の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="167" style="left:824px;top:50px;min-height:60px;"><div class="nm">無職転生</div><div class="num">167</div><select aria-label="台番号167の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="166" style="left:882px;top:50px;min-height:60px;"><div class="nm">無職転生</div><div class="num">166</div><select aria-label="台番号166の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="165" style="left:940px;top:50px;min-height:60px;"><div class="nm">ダイスター</div><div class="num">165</div><select aria-label="台番号165の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="164" style="left:998px;top:50px;min-height:60px;"><div class="nm">ダイスター</div><div class="num">164</div><select aria-label="台番号164の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="163" style="left:1056px;top:50px;min-height:60px;"><div class="nm">ダイスター</div><div class="num">163</div><select aria-label="台番号163の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="162" style="left:1114px;top:50px;min-height:60px;"><div class="nm">マンキン</div><div class="num">162</div><select aria-label="台番号162の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="161" style="left:1172px;top:50px;min-height:60px;"><div class="nm">マンキン</div><div class="num">161</div><select aria-label="台番号161の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="160" style="left:1230px;top:50px;min-height:60px;"><div class="nm">マンキン</div><div class="num">160</div><select aria-label="台番号160の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="159" style="left:1288px;top:50px;min-height:60px;"><div class="nm">攻殻機動隊</div><div class="num">159</div><select aria-label="台番号159の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="158" style="left:1346px;top:50px;min-height:60px;"><div class="nm">攻殻機動隊</div><div class="num">158</div><select aria-label="台番号158の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="157" style="left:1404px;top:50px;min-height:60px;"><div class="nm">攻殻機動隊</div><div class="num">157</div><select aria-label="台番号157の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="156" style="left:1462px;top:50px;min-height:60px;"><div class="nm">喰霊</div><div class="num">156</div><select aria-label="台番号156の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="155" style="left:1520px;top:50px;min-height:60px;"><div class="nm">喰霊</div><div class="num">155</div><select aria-label="台番号155の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="154" style="left:1578px;top:50px;min-height:60px;"><div class="nm">喰霊</div><div class="num">154</div><select aria-label="台番号154の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="153" style="left:1636px;top:50px;min-height:60px;"><div class="nm">戦国恋姫</div><div class="num">153</div><select aria-label="台番号153の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="152" style="left:1694px;top:50px;min-height:60px;"><div class="nm">戦国恋姫</div><div class="num">152</div><select aria-label="台番号152の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="151" style="left:1752px;top:50px;min-height:60px;"><div class="nm">戦国恋姫</div><div class="num">151</div><select aria-label="台番号151の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="65" style="left:170px;top:190px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">65</div><select aria-label="台番号65の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="66" style="left:228px;top:190px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">66</div><select aria-label="台番号66の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="67" style="left:286px;top:190px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">67</div><select aria-label="台番号67の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="68" style="left:344px;top:190px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">68</div><select aria-label="台番号68の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="69" style="left:402px;top:252px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">69</div><select aria-label="台番号69の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="70" style="left:460px;top:314px;min-height:60px;"><div class="nm">バイオ3</div><div class="num">70</div><select aria-label="台番号70の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="71" style="left:510px;top:376px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">71</div><select aria-label="台番号71の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="72" style="left:560px;top:442px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">72</div><select aria-label="台番号72の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="73" style="left:610px;top:508px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">73</div><select aria-label="台番号73の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="74" style="left:660px;top:574px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">74</div><select aria-label="台番号74の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="75" style="left:710px;top:640px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">75</div><select aria-label="台番号75の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="76" style="left:760px;top:706px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">76</div><select aria-label="台番号76の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="77" style="left:810px;top:772px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">77</div><select aria-label="台番号77の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="78" style="left:860px;top:838px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">78</div><select aria-label="台番号78の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="79" style="left:910px;top:904px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">79</div><select aria-label="台番号79の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="80" style="left:960px;top:970px;min-height:60px;"><div class="nm">マギレコ</div><div class="num">80</div><select aria-label="台番号80の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="64" style="left:116px;top:254px;min-height:64px;"><div class="nm">ToLOVE</div><div class="num">64</div><select aria-label="台番号64の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="63" style="left:116px;top:346px;min-height:64px;"><div class="nm">ToLOVE</div><div class="num">63</div><select aria-label="台番号63の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="62" style="left:116px;top:438px;min-height:64px;"><div class="nm">ToLOVE</div><div class="num">62</div><select aria-label="台番号62の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="61" style="left:116px;top:530px;min-height:64px;"><div class="nm">ToLOVE</div><div class="num">61</div><select aria-label="台番号61の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="60" style="left:116px;top:622px;min-height:64px;"><div class="nm">ToLOVE</div><div class="num">60</div><select aria-label="台番号60の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="59" style="left:164px;top:692px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">59</div><select aria-label="台番号59の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="58" style="left:212px;top:762px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">58</div><select aria-label="台番号58の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="57" style="left:260px;top:832px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">57</div><select aria-label="台番号57の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="56" style="left:308px;top:902px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">56</div><select aria-label="台番号56の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="55" style="left:356px;top:972px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">55</div><select aria-label="台番号55の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="54" style="left:404px;top:1042px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">54</div><select aria-label="台番号54の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="53" style="left:452px;top:1112px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">53</div><select aria-label="台番号53の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="52" style="left:500px;top:1182px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">52</div><select aria-label="台番号52の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="51" style="left:548px;top:1252px;min-height:64px;"><div class="nm">禁書目録2</div><div class="num">51</div><select aria-label="台番号51の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="46" style="left:70px;top:1010px;min-height:94px;"><div class="nm">邪神ちゃん</div><div class="num">46</div><select aria-label="台番号46の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="47" style="left:128px;top:1010px;min-height:94px;"><div class="nm">邪神ちゃん</div><div class="num">47</div><select aria-label="台番号47の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="48" style="left:186px;top:1010px;min-height:94px;"><div class="nm">邪神ちゃん</div><div class="num">48</div><select aria-label="台番号48の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="49" style="left:244px;top:1010px;min-height:94px;"><div class="nm">邪神ちゃん</div><div class="num">49</div><select aria-label="台番号49の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="50" style="left:302px;top:1010px;min-height:94px;"><div class="nm">邪神ちゃん</div><div class="num">50</div><select aria-label="台番号50の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="45" style="left:70px;top:1110px;min-height:94px;"><div class="nm">ファンキー</div><div class="num">45</div><select aria-label="台番号45の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="44" style="left:128px;top:1110px;min-height:94px;"><div class="nm">ファンキー</div><div class="num">44</div><select aria-label="台番号44の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="43" style="left:186px;top:1110px;min-height:94px;"><div class="nm">ファンキー</div><div class="num">43</div><select aria-label="台番号43の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="42" style="left:244px;top:1110px;min-height:94px;"><div class="nm">ファンキー</div><div class="num">42</div><select aria-label="台番号42の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="41" style="left:302px;top:1110px;min-height:94px;"><div class="nm">ファンキー</div><div class="num">41</div><select aria-label="台番号41の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="85" style="left:900px;top:240px;min-height:64px;"><div class="nm">新鬼武者3</div><div class="num">85</div><select aria-label="台番号85の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="84" style="left:900px;top:340px;min-height:64px;"><div class="nm">新鬼武者3</div><div class="num">84</div><select aria-label="台番号84の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="83" style="left:900px;top:440px;min-height:64px;"><div class="nm">新鬼武者3</div><div class="num">83</div><select aria-label="台番号83の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="82" style="left:900px;top:540px;min-height:64px;"><div class="nm">新鬼武者3</div><div class="num">82</div><select aria-label="台番号82の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="81" style="left:900px;top:640px;min-height:64px;"><div class="nm">新鬼武者3</div><div class="num">81</div><select aria-label="台番号81の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="86" style="left:990px;top:240px;min-height:64px;"><div class="nm">からくり</div><div class="num">86</div><select aria-label="台番号86の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="87" style="left:990px;top:340px;min-height:64px;"><div class="nm">からくり</div><div class="num">87</div><select aria-label="台番号87の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="88" style="left:990px;top:440px;min-height:64px;"><div class="nm">からくり</div><div class="num">88</div><select aria-label="台番号88の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="89" style="left:990px;top:540px;min-height:64px;"><div class="nm">からくり</div><div class="num">89</div><select aria-label="台番号89の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="90" style="left:990px;top:640px;min-height:64px;"><div class="nm">からくり</div><div class="num">90</div><select aria-label="台番号90の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="95" style="left:1140px;top:240px;min-height:64px;"><div class="nm">からくり</div><div class="num">95</div><select aria-label="台番号95の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="94" style="left:1140px;top:340px;min-height:64px;"><div class="nm">からくり</div><div class="num">94</div><select aria-label="台番号94の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="93" style="left:1140px;top:440px;min-height:64px;"><div class="nm">からくり</div><div class="num">93</div><select aria-label="台番号93の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="92" style="left:1140px;top:540px;min-height:64px;"><div class="nm">からくり</div><div class="num">92</div><select aria-label="台番号92の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="91" style="left:1140px;top:640px;min-height:64px;"><div class="nm">からくり</div><div class="num">91</div><select aria-label="台番号91の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="96" style="left:1230px;top:240px;min-height:64px;"><div class="nm">アズレン</div><div class="num">96</div><select aria-label="台番号96の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="97" style="left:1230px;top:340px;min-height:64px;"><div class="nm">アズレン</div><div class="num">97</div><select aria-label="台番号97の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="98" style="left:1230px;top:440px;min-height:64px;"><div class="nm">アズレン</div><div class="num">98</div><select aria-label="台番号98の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="99" style="left:1230px;top:540px;min-height:64px;"><div class="nm">アズレン</div><div class="num">99</div><select aria-label="台番号99の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="100" style="left:1230px;top:640px;min-height:64px;"><div class="nm">アズレン</div><div class="num">100</div><select aria-label="台番号100の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="112" style="left:1560px;top:190px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">112</div><select aria-label="台番号112の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="113" style="left:1618px;top:190px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">113</div><select aria-label="台番号113の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="114" style="left:1676px;top:190px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">114</div><select aria-label="台番号114の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="115" style="left:1734px;top:190px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">115</div><select aria-label="台番号115の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="116" style="left:1792px;top:190px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">116</div><select aria-label="台番号116の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="111" style="left:1502px;top:252px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">111</div><select aria-label="台番号111の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="110" style="left:1444px;top:314px;min-height:60px;"><div class="nm">MHライズ</div><div class="num">110</div><select aria-label="台番号110の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="109" style="left:1394px;top:442px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">109</div><select aria-label="台番号109の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="108" style="left:1366px;top:508px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">108</div><select aria-label="台番号108の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="107" style="left:1338px;top:574px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">107</div><select aria-label="台番号107の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="106" style="left:1310px;top:640px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">106</div><select aria-label="台番号106の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="105" style="left:1282px;top:706px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">105</div><select aria-label="台番号105の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="104" style="left:1254px;top:772px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">104</div><select aria-label="台番号104の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="103" style="left:1226px;top:838px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">103</div><select aria-label="台番号103の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="102" style="left:1198px;top:904px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">102</div><select aria-label="台番号102の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="101" style="left:1170px;top:970px;min-height:60px;"><div class="nm">炎炎2</div><div class="num">101</div><select aria-label="台番号101の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="117" style="left:1790px;top:250px;min-height:60px;"><div class="nm">SAO2</div><div class="num">117</div><select aria-label="台番号117の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="118" style="left:1756px;top:312px;min-height:60px;"><div class="nm">SAO2</div><div class="num">118</div><select aria-label="台番号118の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="119" style="left:1722px;top:374px;min-height:60px;"><div class="nm">SAO2</div><div class="num">119</div><select aria-label="台番号119の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="120" style="left:1688px;top:436px;min-height:60px;"><div class="nm">SAO2</div><div class="num">120</div><select aria-label="台番号120の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="121" style="left:1654px;top:498px;min-height:60px;"><div class="nm">SAO2</div><div class="num">121</div><select aria-label="台番号121の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="122" style="left:1620px;top:560px;min-height:60px;"><div class="nm">SAO2</div><div class="num">122</div><select aria-label="台番号122の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="123" style="left:1586px;top:622px;min-height:60px;"><div class="nm">SAO2</div><div class="num">123</div><select aria-label="台番号123の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="124" style="left:1552px;top:684px;min-height:60px;"><div class="nm">SAO2</div><div class="num">124</div><select aria-label="台番号124の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="125" style="left:1518px;top:746px;min-height:60px;"><div class="nm">SAO2</div><div class="num">125</div><select aria-label="台番号125の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="126" style="left:1484px;top:808px;min-height:60px;"><div class="nm">SAO2</div><div class="num">126</div><select aria-label="台番号126の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="127" style="left:1450px;top:870px;min-height:60px;"><div class="nm">SAO2</div><div class="num">127</div><select aria-label="台番号127の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="128" style="left:1416px;top:932px;min-height:60px;"><div class="nm">SAO2</div><div class="num">128</div><select aria-label="台番号128の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="129" style="left:1382px;top:994px;min-height:60px;"><div class="nm">SAO2</div><div class="num">129</div><select aria-label="台番号129の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="130" style="left:1348px;top:1056px;min-height:60px;"><div class="nm">SAO2</div><div class="num">130</div><select aria-label="台番号130の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="135" style="left:1560px;top:1010px;min-height:64px;"><div class="nm">Gイーター</div><div class="num">135</div><select aria-label="台番号135の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="134" style="left:1618px;top:1010px;min-height:64px;"><div class="nm">Gイーター</div><div class="num">134</div><select aria-label="台番号134の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="133" style="left:1676px;top:1010px;min-height:64px;"><div class="nm">Gイーター</div><div class="num">133</div><select aria-label="台番号133の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="132" style="left:1734px;top:1010px;min-height:64px;"><div class="nm">Gイーター</div><div class="num">132</div><select aria-label="台番号132の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="131" style="left:1792px;top:1010px;min-height:64px;"><div class="nm">Gイーター</div><div class="num">131</div><select aria-label="台番号131の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="136" style="left:1560px;top:1110px;min-height:64px;"><div class="nm">南国育ちSP</div><div class="num">136</div><select aria-label="台番号136の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="137" style="left:1618px;top:1110px;min-height:64px;"><div class="nm">南国育ちSP</div><div class="num">137</div><select aria-label="台番号137の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="138" style="left:1676px;top:1110px;min-height:64px;"><div class="nm">南国育ちSP</div><div class="num">138</div><select aria-label="台番号138の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="139" style="left:1734px;top:1110px;min-height:64px;"><div class="nm">南国育ちSP</div><div class="num">139</div><select aria-label="台番号139の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="140" style="left:1792px;top:1110px;min-height:64px;"><div class="nm">南国育ちSP</div><div class="num">140</div><select aria-label="台番号140の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="188" style="left:1000px;top:1230px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">188</div><select aria-label="台番号188の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="189" style="left:1060px;top:1230px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">189</div><select aria-label="台番号189の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="190" style="left:1120px;top:1230px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">190</div><select aria-label="台番号190の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="191" style="left:1180px;top:1230px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">191</div><select aria-label="台番号191の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="192" style="left:1240px;top:1280px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">192</div><select aria-label="台番号192の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="193" style="left:1240px;top:1340px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">193</div><select aria-label="台番号193の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="194" style="left:1240px;top:1400px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">194</div><select aria-label="台番号194の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="195" style="left:1240px;top:1460px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">195</div><select aria-label="台番号195の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="196" style="left:1240px;top:1520px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">196</div><select aria-label="台番号196の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="197" style="left:1240px;top:1580px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">197</div><select aria-label="台番号197の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="198" style="left:1240px;top:1640px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">198</div><select aria-label="台番号198の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="181" style="left:940px;top:1640px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">181</div><select aria-label="台番号181の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="182" style="left:940px;top:1580px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">182</div><select aria-label="台番号182の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="183" style="left:940px;top:1520px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">183</div><select aria-label="台番号183の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="184" style="left:940px;top:1460px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">184</div><select aria-label="台番号184の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="185" style="left:940px;top:1400px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">185</div><select aria-label="台番号185の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="186" style="left:940px;top:1340px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">186</div><select aria-label="台番号186の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="187" style="left:940px;top:1280px;min-height:60px;"><div class="nm">Lカバネリ</div><div class="num">187</div><select aria-label="台番号187の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="31" style="left:70px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">31</div><select aria-label="台番号31の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="32" style="left:128px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">32</div><select aria-label="台番号32の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="33" style="left:186px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">33</div><select aria-label="台番号33の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="34" style="left:244px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">34</div><select aria-label="台番号34の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="35" style="left:302px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">35</div><select aria-label="台番号35の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="36" style="left:360px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">36</div><select aria-label="台番号36の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="37" style="left:418px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">37</div><select aria-label="台番号37の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="38" style="left:476px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">38</div><select aria-label="台番号38の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="39" style="left:534px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">39</div><select aria-label="台番号39の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="40" style="left:592px;top:1420px;min-height:64px;"><div class="nm">ネオアイム</div><div class="num">40</div><select aria-label="台番号40の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="30" style="left:70px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">30</div><select aria-label="台番号30の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="29" style="left:128px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">29</div><select aria-label="台番号29の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="28" style="left:186px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">28</div><select aria-label="台番号28の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="27" style="left:244px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">27</div><select aria-label="台番号27の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="26" style="left:302px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">26</div><select aria-label="台番号26の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="25" style="left:360px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">25</div><select aria-label="台番号25の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="24" style="left:418px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">24</div><select aria-label="台番号24の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="23" style="left:476px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">23</div><select aria-label="台番号23の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="22" style="left:534px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">22</div><select aria-label="台番号22の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="21" style="left:592px;top:1490px;min-height:64px;"><div class="nm">マイV</div><div class="num">21</div><select aria-label="台番号21の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="11" style="left:70px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">11</div><select aria-label="台番号11の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="12" style="left:128px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">12</div><select aria-label="台番号12の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="13" style="left:186px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">13</div><select aria-label="台番号13の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="14" style="left:244px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">14</div><select aria-label="台番号14の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="15" style="left:302px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">15</div><select aria-label="台番号15の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="16" style="left:360px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">16</div><select aria-label="台番号16の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="17" style="left:418px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">17</div><select aria-label="台番号17の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="18" style="left:476px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">18</div><select aria-label="台番号18の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="19" style="left:534px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">19</div><select aria-label="台番号19の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="20" style="left:592px;top:1590px;min-height:64px;"><div class="nm">マイV</div><div class="num">20</div><select aria-label="台番号20の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="10" style="left:70px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">10</div><select aria-label="台番号10の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="9" style="left:128px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">9</div><select aria-label="台番号9の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="8" style="left:186px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">8</div><select aria-label="台番号8の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="7" style="left:244px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">7</div><select aria-label="台番号7の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="6" style="left:302px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">6</div><select aria-label="台番号6の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="5" style="left:360px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">5</div><select aria-label="台番号5の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="4" style="left:418px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">4</div><select aria-label="台番号4の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="3" style="left:476px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">3</div><select aria-label="台番号3の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="2" style="left:534px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">2</div><select aria-label="台番号2の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="1" style="left:592px;top:1660px;min-height:64px;"><div class="nm">ゴーゴー</div><div class="num">1</div><select aria-label="台番号1の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="141" style="left:1560px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">141</div><select aria-label="台番号141の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="142" style="left:1618px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">142</div><select aria-label="台番号142の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="143" style="left:1676px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">143</div><select aria-label="台番号143の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="144" style="left:1734px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">144</div><select aria-label="台番号144の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="145" style="left:1792px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">145</div><select aria-label="台番号145の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="146" style="left:1850px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">146</div><select aria-label="台番号146の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="147" style="left:1908px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">147</div><select aria-label="台番号147の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="148" style="left:1966px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">148</div><select aria-label="台番号148の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="149" style="left:2024px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">149</div><select aria-label="台番号149の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+<div class="seat" data-num="150" style="left:2082px;top:1420px;min-height:60px;"><div class="nm">沖ドキ黒</div><div class="num">150</div><select aria-label="台番号150の状態"><option value="">－</option><option value="◎">◎</option><option value="○">○</option><option value="△">△</option></select></div>
+  </div>
+ </div>
+</div>
+
+<script>
+(function(){
+  const NAT_W = 2200, NAT_H = 1900;
+  function fitMap(){
+    const wrap = document.querySelector('.mapwrap');
+    const scaler = document.getElementById('scaler');
+    const cs = getComputedStyle(wrap);
+    const available = wrap.clientWidth - parseFloat(cs.paddingLeft||0) - parseFloat(cs.paddingRight||0);
+    if (!(available > 0)) return;
+    const scale = Math.min(1, available / NAT_W);
+    scaler.style.transform = 'scale(' + scale + ')';
+    scaler.style.width = (NAT_W * scale) + 'px';
+    scaler.style.height = (NAT_H * scale) + 'px';
+  }
+  fitMap();
+  requestAnimationFrame(fitMap);
+  window.addEventListener('load', fitMap);
+  window.addEventListener('resize', fitMap);
+  window.addEventListener('orientationchange', fitMap);
+  setTimeout(fitMap, 50);
+  setTimeout(fitMap, 300);
+
+  const LS_PREFIX = 'shimazuMark:';
+  let storageOk = true;
+  function safeGet(key){
+    try { return localStorage.getItem(key); } catch(e){ storageOk = false; return null; }
+  }
+  function safeSet(key, val){
+    try { localStorage.setItem(key, val); } catch(e){ storageOk = false; }
+  }
+  function safeRemove(key){
+    try { localStorage.removeItem(key); } catch(e){ storageOk = false; }
+  }
+
+  document.querySelectorAll('.seat').forEach(cell=>{
+    const saved = safeGet(LS_PREFIX + cell.dataset.num);
+    if (saved){
+      cell.setAttribute('data-mark', saved);
+      cell.querySelector('select').value = saved;
+    }
+  });
+
+  document.querySelectorAll('.seat').forEach(cell=>{
+    const sel = cell.querySelector('select');
+    sel.addEventListener('change', ()=>{
+      cell.setAttribute('data-mark', sel.value);
+      if (sel.value) safeSet(LS_PREFIX + cell.dataset.num, sel.value);
+      else safeRemove(LS_PREFIX + cell.dataset.num);
+    });
+  });
+
+  document.getElementById('clear-all').addEventListener('click', ()=>{
+    if (!confirm('すべての印を消去します。よろしいですか？')) return;
+    document.querySelectorAll('.seat').forEach(cell=>{
+      cell.removeAttribute('data-mark');
+      cell.querySelector('select').value = '';
+      safeRemove(LS_PREFIX + cell.dataset.num);
+    });
+  });
+
+  document.getElementById('save-note').textContent = storageOk
+    ? 'この端末に保存されます'
+    : 'この端末では保存機能が使えないため、画面を閉じると内容は消えます';
+})();
+</script>
+</body>
+</html>
